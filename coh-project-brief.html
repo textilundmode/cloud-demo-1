@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CoH Server – Projektauftrag für Claude Code</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #07070f;
+      --surface: #0f0f1a;
+      --surface2: #16162a;
+      --border: rgba(255,255,255,0.07);
+      --accent: #7c3aed;
+      --accent2: #2563eb;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --code-bg: #0d0d1a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: rgba(15,15,26,0.95);
+      border-bottom: 1px solid var(--border);
+      padding: .9rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+    }
+    .topbar-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .85rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .topbar-sep { color: var(--muted); }
+    .topbar-title { font-size: .9rem; color: var(--muted); }
+    .topbar-actions { margin-left: auto; display: flex; gap: .75rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .45rem 1rem; border-radius: 7px;
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      border: none; transition: opacity .2s, transform .15s;
+    }
+    .btn:hover { opacity: .85; transform: translateY(-1px); }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 980px; margin: 0 auto; padding: 2.5rem 2rem 5rem; }
+
+    /* ── HERO HEADER ── */
+    .page-header {
+      text-align: center;
+      padding: 2.5rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2.5rem;
+    }
+    .game-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: rgba(124,58,237,.12);
+      border: 1px solid rgba(124,58,237,.3);
+      color: #a78bfa;
+      padding: .3rem .9rem; border-radius: 99px;
+      font-size: .75rem; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+    .page-header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: .8rem;
+    }
+    .page-header h1 span {
+      background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header p { color: var(--muted); font-size: 1.05rem; max-width: 560px; margin: 0 auto; }
+
+    /* ── SECTION TITLES ── */
+    .section { margin-bottom: 2.5rem; }
+    .section-header {
+      display: flex; align-items: center; gap: .75rem;
+      margin-bottom: 1.25rem;
+    }
+    .section-num {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .section-title { font-size: 1.1rem; font-weight: 600; }
+    .section-sub { font-size: .8rem; color: var(--muted); margin-left: auto; }
+
+    /* ── PROMPT BOX (the main deliverable) ── */
+    .prompt-box {
+      background: var(--code-bg);
+      border: 1px solid rgba(124,58,237,.35);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(124,58,237,.1);
+    }
+    .prompt-box-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .85rem 1.25rem;
+      background: rgba(124,58,237,.08);
+      border-bottom: 1px solid rgba(124,58,237,.2);
+    }
+    .prompt-box-label {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .8rem; font-weight: 600; color: #a78bfa;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #a78bfa; animation: blink 1.8s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .prompt-body {
+      padding: 1.5rem 1.5rem;
+      font-size: .92rem;
+      line-height: 1.75;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .prompt-body .hl-key { color: #a78bfa; }
+    .prompt-body .hl-val { color: #34d399; }
+    .prompt-body .hl-comment { color: #475569; font-style: italic; }
+
+    /* ── INFO CARDS ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .info-card .card-icon { font-size: 1.5rem; margin-bottom: .6rem; }
+    .info-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .4rem; }
+    .info-card p { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── REQUIREMENTS TABLE ── */
+    .req-table { width: 100%; border-collapse: collapse; }
+    .req-table th, .req-table td {
+      padding: .7rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: .88rem;
+    }
+    .req-table th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; background: var(--surface2); }
+    .req-table tr:last-child td { border-bottom: none; }
+    .req-table td:first-child { font-family: 'JetBrains Mono', monospace; color: #a78bfa; font-size: .82rem; }
+    .req-table tr:hover td { background: rgba(255,255,255,.02); }
+
+    /* ── GM COMMANDS TABLE ── */
+    .cmd-table { width: 100%; border-collapse: collapse; }
+    .cmd-table th, .cmd-table td { padding: .65rem 1rem; text-align: left; border-bottom: 1px solid var(--border); font-size: .85rem; }
+    .cmd-table th { background: var(--surface2); color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; }
+    .cmd-table code { font-family: 'JetBrains Mono', monospace; background: rgba(124,58,237,.15); color: #c4b5fd; padding: .1rem .4rem; border-radius: 4px; font-size: .82rem; }
+    .cmd-table .cat { color: var(--cyan); font-size: .78rem; font-weight: 600; }
+    .cmd-table tr:hover td { background: rgba(255,255,255,.015); }
+
+    /* ── CHECKLIST ── */
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: .55rem; }
+    .checklist li {
+      display: flex; align-items: flex-start; gap: .75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: .7rem 1rem;
+      font-size: .88rem;
+    }
+    .checklist li .check {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .checklist li span { color: #94a3b8; }
+
+    /* ── ALERT BOX ── */
+    .alert {
+      display: flex; gap: .75rem;
+      padding: 1rem 1.25rem;
+      border-radius: 10px;
+      font-size: .88rem;
+      margin-bottom: 1.25rem;
+    }
+    .alert-warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); color: #fbbf24; }
+    .alert-info { background: rgba(6,182,212,.08); border: 1px solid rgba(6,182,212,.25); color: #67e8f9; }
+    .alert-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+    /* ── COPY NOTIFICATION ── */
+    #copy-toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--green);
+      color: #fff;
+      padding: .75rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: .9rem;
+      box-shadow: 0 8px 30px rgba(16,185,129,.4);
+      transform: translateY(80px); opacity: 0;
+      transition: transform .3s ease, opacity .3s ease;
+      z-index: 999;
+    }
+    #copy-toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── DIVIDER ── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+    /* ── FOOTER ── */
+    footer { text-align: center; padding: 2rem; color: var(--muted); font-size: .82rem; border-top: 1px solid var(--border); }
+    footer span { color: #a78bfa; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">claude-code</div>
+  <div class="topbar-sep">/</div>
+  <div class="topbar-title">City of Heroes – Projektauftrag</div>
+  <div class="topbar-actions">
+    <button class="btn btn-ghost" onclick="window.print()">🖨 Drucken</button>
+    <button class="btn btn-primary" onclick="copyPrompt()">📋 Prompt kopieren</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="game-badge">🦸 City of Heroes · Lokaler Privatserver</div>
+    <h1>Projektauftrag für<br><span>Claude Code</span></h1>
+    <p>Vollständige Anweisung zur Einrichtung eines lokalen CoH-Servers –
+    inkl. Charakterkontrolle, GM-Rechten und Spielanleitung.</p>
+  </div>
+
+  <!-- SECTION 1: DER PROMPT -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div class="section-title">Der Claude-Code-Prompt</div>
+      <div class="section-sub">Direkt kopieren und in Claude Code einfügen</div>
+    </div>
+
+    <div class="prompt-box" id="prompt-container">
+      <div class="prompt-box-header">
+        <div class="prompt-box-label">
+          <div class="dot"></div>
+          PROMPT · Claude Code
+        </div>
+        <button class="btn btn-primary" onclick="copyPrompt()" style="padding:.35rem .9rem;font-size:.78rem;">📋 Kopieren</button>
+      </div>
+      <div class="prompt-body" id="prompt-text">
+<span class="hl-comment"># Projektauftrag: City of Heroes – Lokaler Privatserver (Windows)</span>
+
+Richte mir auf diesem Windows-PC einen vollständig funktionsfähigen
+City of Heroes Privatserver ein, auf dem ich lokal alleine spielen kann.
+
+<span class="hl-key">## Ziel</span>
+- Ich möchte City of Heroes (i25) komplett auf meinem PC spielen können,
+  ohne Internetverbindung oder fremde Server.
+- Alle benötigten Dateien kommen in einen Ordner namens <span class="hl-val">COH</span> auf dem Desktop:
+  <span class="hl-val">C:\Users\[Benutzername]\Desktop\COH\</span>
+- Am Ende starte ich das Spiel mit einem Doppelklick auf eine Startdatei
+  im COH-Ordner.
+
+<span class="hl-key">## Aufgaben im Detail</span>
+
+<span class="hl-val">1. Software installieren</span>
+   - SQL Server Express (kostenlos, Microsoft) installieren
+   - SQL Server Management Studio (SSMS) installieren
+   - XAMPP installieren (für lokalen Webserver / Account-Portal)
+   - 7-Zip installieren (zum Entpacken)
+
+<span class="hl-val">2. Server-Dateien einrichten (Desktop\COH\)</span>
+   - COH-Server i25 von OuroDev herunterladen (wiki.ourodev.com/I25_Downloads)
+   - COH-xampp.7z herunterladen und entpacken
+   - dbschema.rar herunterladen und Datenbank importieren
+   - i25 Client herunterladen (wiki.ourodev.com/I25_CoH_Client_and_Server)
+   - Ordnerstruktur anlegen:
+       Desktop\COH\Server\     ← Server-Binaries
+       Desktop\COH\Client\     ← Spiel-Client
+       Desktop\COH\XAMPP\      ← Webserver + Account-Portal
+       Desktop\COH\dbschema\   ← Datenbank-Schema
+
+<span class="hl-val">3. Datenbank konfigurieren</span>
+   - SQL Server Express starten, Instanz: SQLEXPRESS
+   - Installationspfad: C:\Microsoft SQL Server (wichtig für DBSchema)
+   - dbschema SQL-Skripte der Reihe nach ausführen
+
+<span class="hl-val">4. Server konfigurieren</span>
+   - In Desktop\COH\Server\bin\ folgende .cfg-Dateien anpassen:
+       servers.cfg, account_server.cfg, auction_server.cfg, chat_server.cfg
+   - Passwort in allen Configs setzen
+   - In servers.cfg eintragen: DefaultAccessLevel = 11
+     (damit ich als GM/Admin spiele und Charaktere beeinflussen kann)
+
+<span class="hl-val">5. Startskript erstellen</span>
+   Erstelle Desktop\COH\START_SERVER.bat mit folgendem Ablauf:
+   - SQL Server starten (falls nicht aktiv)
+   - XAMPP-Webserver starten
+   - DBServer.exe starten
+   - AuthServer.exe starten
+   - MapServer.exe starten
+   - 10 Sekunden warten
+   - Tequila.exe (Client-Launcher) starten
+   Das Skript soll mit EINEM Doppelklick alles starten.
+
+<span class="hl-val">6. Account anlegen</span>
+   - Account-Portal unter http://127.0.0.1/ aufrufen
+   - Meinen ersten Account erstellen
+   - In Tequila: Manifest-URL http://127.0.0.1/manifest.xml eintragen
+
+<span class="hl-key">## GM-Zugang & Charakterkontrolle</span>
+   Da DefaultAccessLevel = 11 gesetzt ist, habe ich als erster Charakter
+   volle GM-Rechte. Erkläre mir nach der Installation kurz:
+   - Wie öffne ich das GM-Menü? (/mmm im Chat)
+   - Wie setze ich Level, Inf (Geld) und Items per Befehl?
+   - Welche Befehle gibt es zum Spawnen von Gegenständen?
+
+<span class="hl-key">## Systemvoraussetzungen prüfen</span>
+   - Prüfe vorher, ob mindestens 8 GB RAM vorhanden sind
+   - Falls weniger als 32 GB RAM: Windows-Auslagerungsdatei auf 32768 MB setzen
+   - Prüfe, ob genug Festplattenspeicher vorhanden ist (min. 25 GB)
+
+<span class="hl-key">## Quellen / Dokumentation</span>
+   - OuroDev Wiki: wiki.ourodev.com
+   - i25 Downloads: wiki.ourodev.com/I25_Downloads
+   - i25 Server Setup: wiki.ourodev.com/I25_Server_Setup
+   - GM-Befehle: wiki.ourodev.com/I25_Commands
+   - YouTube-Anleitung: youtu.be/XhLgDrk6WiY
+
+<span class="hl-key">## Erwartetes Ergebnis</span>
+   Nach Abschluss soll ich:
+   ✓ Den Server per Doppelklick auf START_SERVER.bat starten können
+   ✓ Einen Superhelden-Charakter erstellen und in Paragon City spielen
+   ✓ Per GM-Befehlen Level, Geld und Items meines Chars steuern können
+   ✓ Vollständig offline und ohne Internetverbindung spielen können
+      </div>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- SECTION 2: ÜBERSICHT -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div class="section-title">Was wird eingerichtet?</div>
+    </div>
+    <div class="card-grid">
+      <div class="info-card">
+        <div class="card-icon">🖥️</div>
+        <h3>Lokaler Server</h3>
+        <p>Der vollständige CoH i25-Server läuft auf deinem PC. Kein Internet nötig, keine externen Server.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-icon">🦸</div>
+        <h3>Charakter erstellen</h3>
+        <p>Du erstellst deinen Superhelden im vollständigen Charakter-Editor – Klassen, Kräfte, Kostüm, Name.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-icon">⚡</div>
+        <h3>GM-Vollzugriff</h3>
+        <p>DefaultAccessLevel 11: du spielst sofort als Game Master mit Zugriff auf alle Admin-Befehle.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-icon">🗂️</div>
+        <h3>Ein Ordner, ein Klick</h3>
+        <p>Alle Dateien in <code style="color:#a78bfa;font-family:monospace">Desktop\COH\</code> – Start per <code style="color:#a78bfa;font-family:monospace">START_SERVER.bat</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- SECTION 3: SYSTEMVORAUSSETZUNGEN -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div class="section-title">Systemvoraussetzungen</div>
+    </div>
+
+    <div class="alert alert-warn">
+      <div class="alert-icon">⚠️</div>
+      <div><strong>RAM ist kritisch.</strong> Der CoH-Server braucht viel Arbeitsspeicher.
+      Unter 8 GB läuft er kaum. Mit 32 GB läuft er flüssig. Weniger als 32 GB?
+      → Auslagerungsdatei auf 32.768 MB setzen lassen.</div>
+    </div>
+
+    <table class="req-table">
+      <thead><tr><th>Komponente</th><th>Minimum</th><th>Empfohlen</th></tr></thead>
+      <tbody>
+        <tr><td>RAM</td><td>8 GB</td><td>32 GB</td></tr>
+        <tr><td>Festplatte</td><td>20 GB frei</td><td>40 GB SSD</td></tr>
+        <tr><td>Betriebssystem</td><td>Windows 10 64-bit</td><td>Windows 10/11 64-bit</td></tr>
+        <tr><td>CPU</td><td>Quad-Core</td><td>Quad-Core, 3+ GHz</td></tr>
+        <tr><td>Grafikkarte</td><td>DirectX 9 kompatibel</td><td>Beliebig – kein AAA-Titel</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr />
+
+  <!-- SECTION 4: SOFTWARE-LISTE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div class="section-title">Benötigte Software (alle kostenlos)</div>
+    </div>
+    <table class="req-table">
+      <thead><tr><th>Software</th><th>Zweck</th><th>Quelle</th></tr></thead>
+      <tbody>
+        <tr><td>COH-Server i25</td><td>Der eigentliche Spielserver</td><td>wiki.ourodev.com/I25_Downloads</td></tr>
+        <tr><td>i25 CoH Client</td><td>Das Spiel (Client)</td><td>wiki.ourodev.com/I25_CoH_Client_and_Server</td></tr>
+        <tr><td>COH-xampp.7z</td><td>XAMPP + Tequila + Account-Portal</td><td>wiki.ourodev.com/I25_Downloads</td></tr>
+        <tr><td>dbschema.rar</td><td>Datenbank-Struktur</td><td>wiki.ourodev.com/I25_Downloads</td></tr>
+        <tr><td>SQL Server Express</td><td>Datenbank für Charaktere/Accounts</td><td>microsoft.com (kostenlos)</td></tr>
+        <tr><td>SSMS</td><td>Datenbank verwalten</td><td>microsoft.com (kostenlos)</td></tr>
+        <tr><td>7-Zip</td><td>.7z-Dateien entpacken</td><td>7-zip.org</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr />
+
+  <!-- SECTION 5: CHARAKTER-KONTROLLE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div class="section-title">Charakterkontrolle – Übersicht</div>
+    </div>
+
+    <div class="alert alert-info">
+      <div class="alert-icon">ℹ️</div>
+      <div>Mit <strong>DefaultAccessLevel = 11</strong> in <code>servers.cfg</code>
+      erhält jeder neue Charakter automatisch volle GM-Rechte.
+      Im Spiel öffnest du das Admin-Menü mit <code>/mmm</code>.</div>
+    </div>
+
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Befehl</th>
+          <th>Kategorie</th>
+          <th>Was er tut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>/mmm</code></td>
+          <td class="cat">Admin-Menü</td>
+          <td>Öffnet das vollständige GM-Verwaltungsmenü</td>
+        </tr>
+        <tr>
+          <td><code>/setlevel [1-50]</code></td>
+          <td class="cat">Level</td>
+          <td>Setzt das Level deines Charakters sofort</td>
+        </tr>
+        <tr>
+          <td><code>/give_inf [Betrag]</code></td>
+          <td class="cat">Geld</td>
+          <td>Gibt Influence (CoH-Währung) direkt auf dein Konto</td>
+        </tr>
+        <tr>
+          <td><code>/grantpower [Power-Name]</code></td>
+          <td class="cat">Kräfte</td>
+          <td>Verleiht eine beliebige Kraft/Superpower</td>
+        </tr>
+        <tr>
+          <td><code>/reward [Item-Name]</code></td>
+          <td class="cat">Items</td>
+          <td>Gibt ein bestimmtes Item oder Enhancement</td>
+        </tr>
+        <tr>
+          <td><code>/setaccesslevel [Name] [0-11]</code></td>
+          <td class="cat">Rechte</td>
+          <td>Setzt das Zugriffslevel eines Accounts</td>
+        </tr>
+        <tr>
+          <td><code>/godmode</code></td>
+          <td class="cat">Spiel</td>
+          <td>Unverwundbarkeit an/aus</td>
+        </tr>
+        <tr>
+          <td><code>/fly</code></td>
+          <td class="cat">Bewegung</td>
+          <td>Flugmodus (auch ohne Flug-Kraft)</td>
+        </tr>
+        <tr>
+          <td><code>/teleport [Zone]</code></td>
+          <td class="cat">Bewegung</td>
+          <td>Sofort in eine andere Zone teleportieren</td>
+        </tr>
+        <tr>
+          <td><code>/spawn_critter [Name]</code></td>
+          <td class="cat">Welt</td>
+          <td>Gegner oder NPC in der Welt spawnen</td>
+        </tr>
+        <tr>
+          <td><code>/maxhp</code></td>
+          <td class="cat">Status</td>
+          <td>HP auf Maximum setzen</td>
+        </tr>
+        <tr>
+          <td><code>/fillstatus</code></td>
+          <td class="cat">Status</td>
+          <td>Alle Endurance/HP sofort auffüllen</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:1.25rem;padding:1rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:.87rem;color:var(--muted)">
+      <strong style="color:var(--text)">Vollständige Befehlsliste:</strong>
+      wiki.ourodev.com/I25_Commands &nbsp;·&nbsp; homecoming.wiki/wiki/Talk:List_of_Slash_Commands
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- SECTION 6: CHECKLISTE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <div class="section-title">Fortschritts-Checkliste</div>
+    </div>
+    <ul class="checklist">
+      <li><div class="check"></div><span>SQL Server Express und SSMS installiert</span></li>
+      <li><div class="check"></div><span>7-Zip installiert, alle .7z/.rar Dateien entpackt</span></li>
+      <li><div class="check"></div><span>Datenbank-Schema erfolgreich importiert (SSMS)</span></li>
+      <li><div class="check"></div><span>Ordnerstruktur <code style="color:#a78bfa">Desktop\COH\</code> angelegt</span></li>
+      <li><div class="check"></div><span>servers.cfg: DefaultAccessLevel = 11 gesetzt</span></li>
+      <li><div class="check"></div><span>START_SERVER.bat erstellt und getestet</span></li>
+      <li><div class="check"></div><span>Account-Portal unter http://127.0.0.1/ erreichbar</span></li>
+      <li><div class="check"></div><span>Ersten Account erstellt und in Tequila eingeloggt</span></li>
+      <li><div class="check"></div><span>Charakter erstellt – Superheld läuft in Paragon City</span></li>
+      <li><div class="check"></div><span>/mmm öffnet das Admin-Menü im Spiel</span></li>
+      <li><div class="check"></div><span>Level, Geld und Kräfte per Befehl gesetzt</span></li>
+    </ul>
+  </div>
+
+</div><!-- /page -->
+
+<div id="copy-toast">✓ Prompt in Zwischenablage kopiert!</div>
+
+<footer>
+  Erstellt mit <span>Claude Sonnet 4.6</span> für das CoH-Serverprojekt &nbsp;·&nbsp;
+  Quellen: <a href="https://wiki.ourodev.com" style="color:#64748b">OuroDev Wiki</a> &nbsp;·&nbsp;
+  <a href="https://www.youtube.com/watch?v=XhLgDrk6WiY" style="color:#64748b">YouTube Guide</a>
+</footer>
+
+<script>
+  function copyPrompt() {
+    const el = document.getElementById('prompt-text');
+    // Strip HTML tags to get plain text
+    const plain = el.innerText || el.textContent;
+    navigator.clipboard.writeText(plain.trim()).then(() => {
+      const toast = document.getElementById('copy-toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }).catch(() => {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = plain.trim();
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const toast = document.getElementById('copy-toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    });
+  }
+</script>
+</body>
+</html>
